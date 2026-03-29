@@ -1,6 +1,6 @@
 # Thermostat-C3 (Smart Thermostat for ESP32-C3)
 
-A high-performance, feature-rich smart thermostat firmware designed for the **Wemos LOLIN C3 PICO** (ESP32-C3). It integrates a local OLED display, physical controls, MQTT synchronization, and a sleek web dashboard for remote management.
+Thermostat firmware designed for the **Wemos LOLIN C3 PICO** (ESP32-C3). It integrates a local OLED display, physical controls, MQTT synchronization, and web dashboard for remote management.
 
 ![Hardware Overview](https://img.shields.io/badge/Hardware-Wemos%20LOLIN%20C3%20PICO-blue)
 ![Platform](https://img.shields.io/badge/Platform-ESP32--C3-orange)
