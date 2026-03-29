@@ -40,8 +40,12 @@ HTTPUpdateServer httpUpdater;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-const int btnPins[4] = {2, 3, 5, 6};
+// CHANGED: Button 2 moved to 4 to free 3 for battery
+const int btnPins[4] = {2, 4, 5, 6}; 
 bool btnState[4] = {HIGH, HIGH, HIGH, HIGH};
+
+float batteryVoltage = 0.0;
+int batteryPercentage = 0;
 
 // ===== LONG PRESS CONFIG =====
 const unsigned long longPressTime = 1000;   // 1 second
@@ -276,6 +280,20 @@ void drawWifiBars(int x, int y) {
 void TH_Overlay() {
   display.clear();
   
+  // Read battery status
+  int raw = analogRead(3);
+  batteryVoltage = (raw * 3.3 / 4095.0) * 2.0;
+  // Simple mapping: 3.3V = 0%, 4.2V = 100%
+  batteryPercentage = constrain(map(batteryVoltage * 100, 330, 420, 0, 100), 0, 100);
+
+  Serial.print("Battery: ");
+  Serial.print(raw);
+  Serial.print(" (raw) | ");
+  Serial.print(batteryVoltage);
+  Serial.print("V | ");
+  Serial.print(batteryPercentage);
+  Serial.println("%");
+
   static bool blinkState = false;
   static unsigned long lastBlink = 0;
   if (millis() - lastBlink > (mqttConnected ? 1000 : 250)) {
@@ -284,9 +302,9 @@ void TH_Overlay() {
   }
 
   display.setFont(ArialMT_Plain_10);
-  display.setTextAlignment(TEXT_ALIGN_LEFT);
 
-  // Top-left indicator
+  // TOP LEFT - WiFi
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
   if (mqttClient.connected()) {
     drawWifiBars(2, 14);   // your existing WiFi icon
   } else {
@@ -295,17 +313,22 @@ void TH_Overlay() {
     }
   }
 
+  // TOP MIDDLE - Relay Status
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.drawString(SCREEN_W / 2, 2, deviceStatus == 1 ? "ON" : "OFF");
+
+  // TOP RIGHT - Battery Indicator
+  display.setTextAlignment(TEXT_ALIGN_RIGHT);
+  display.drawString(SCREEN_W - 2, 2, String(batteryPercentage) + "%");
+
+  // BOTTOM LEFT - Time
   if (lastTempReceived > 0) {
     struct tm * timeinfo = localtime(&lastTempReceived);
     char buf[6];
     strftime(buf, sizeof(buf), "%H:%M", timeinfo);
-    display.setTextAlignment(TEXT_ALIGN_CENTER);
-    display.drawString(SCREEN_W / 2, 2, String(buf));
+    display.setTextAlignment(TEXT_ALIGN_LEFT);
+    display.drawString(2, SCREEN_H - 12, String(buf));
   }
-
-  // TOP RIGHT - Status (Correctly using deviceStatus)
-  display.setTextAlignment(TEXT_ALIGN_RIGHT);
-  display.drawString(SCREEN_W - 2, 2, deviceStatus == 1 ? "ON" : "OFF");
 
   display.setFont(ArialMT_Plain_24);
   display.setTextAlignment(TEXT_ALIGN_CENTER);
@@ -331,6 +354,7 @@ void TH_Overlay() {
     setBlinkState = true;  // always visible when locked
   }
 
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
   display.drawString(SCREEN_W / 2 - 30, SCREEN_H - 18, "Set:");
 
   if (setBlinkState)
@@ -340,14 +364,14 @@ void TH_Overlay() {
 }
 
 void handleButtons() {
-  bool btn12Pressed = (digitalRead(btnPins[0]) == LOW);
-  bool btn13Pressed = (digitalRead(btnPins[1]) == LOW);
+  bool btn0Pressed = (digitalRead(btnPins[0]) == LOW);
+  bool btn1Pressed = (digitalRead(btnPins[1]) == LOW);
 
   // =========================================
   // 🔐 DUAL BUTTON HOLD TO UNLOCK
   // =========================================
   if (childLockEnabled && !childUnlocked) {
-    if (btn12Pressed && btn13Pressed) {
+    if (btn0Pressed && btn1Pressed) {
       if (!unlockComboActive) {
         unlockComboActive = true;
         unlockStartTime = millis();
@@ -416,7 +440,7 @@ void handleButtons() {
         }
       }
 
-      // ===== Setpoint Buttons (GPIO2 & GPIO3 / Index 0 & 1) =====
+      // ===== Setpoint Buttons (GPIO2 & GPIO4 / Index 0 & 1) =====
       if ((i == 0 || i == 1) && childUnlocked) {
         lastUserActivity = millis();
         if (i == 0) {
@@ -443,15 +467,29 @@ void handleButtons() {
 
 void configModeCallback(WiFiManager *myWiFiManager) {
   display.clear();
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.setFont(ArialMT_Plain_10);
+  
+  // Read battery for display
+  int raw = analogRead(3);
+  float vbat = (raw * 3.3 / 4095.0) * 2.0;
+  int pct = constrain(map(vbat * 100, 330, 420, 0, 100), 0, 100);
 
+  display.setTextAlignment(TEXT_ALIGN_RIGHT);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(SCREEN_W - 2, 2, String(pct) + "%");
+
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
   display.drawString(SCREEN_W/2, 5, "WiFi Setup Mode");
   display.drawString(SCREEN_W/2, 20, "Connect to:");
   display.drawString(SCREEN_W/2, 32, myWiFiManager->getConfigPortalSSID());
   display.drawString(SCREEN_W/2, 48, "192.168.4.1");
 
   display.display();
+
+  Serial.print("Setup Mode Battery: ");
+  Serial.print(raw);
+  Serial.print(" (raw) | ");
+  Serial.print(vbat);
+  Serial.println("V");
 }
 
 
@@ -584,6 +622,7 @@ button { padding:10px 20px; border-radius:6px; border:none; background:#00d1b2; 
   <span id="wifi"></span>
   <span id="time">--:--</span>
   <span id="mqtt">MQTT</span>
+  <span id="bat">--%</span>
 </div>
 <div class="temp"><span id="curr_temp">--</span>&deg;C</div>
 <p>Relay: <span id="relay_stat" class="status-badge">--</span></p>
@@ -710,6 +749,7 @@ async function updateStatus(){
     rs.className = s.relay == 1 ? "status-badge on" : "status-badge off";
 
     document.getElementById("time").innerText = s.last;
+    document.getElementById("bat").innerText = s.bat + "%";
 
     document.getElementById("rotate_btn").style.color =
         s.flip ? "#00d1b2" : "#bbb";
@@ -758,6 +798,7 @@ void setupWebServer() {
     doc["topic_pub"] = topic_pub;
     doc["topic_stat"] = topic_stat;
     doc["flip"] = display_flip;
+    doc["bat"] = batteryPercentage;
     String json;
     serializeJson(doc, json);
     httpServer.send(200, "application/json", json);
@@ -856,6 +897,7 @@ void setupWebServer() {
 
 void setup() {
   Serial.begin(115200);
+  analogSetAttenuation(ADC_11db);
 
   esp_sleep_wakeup_cause_t wakeReason = esp_sleep_get_wakeup_cause();
 
@@ -888,6 +930,15 @@ void setup() {
   lastUserActivity = millis();
 
   for (int i=0;i<4;i++) pinMode(btnPins[i], INPUT_PULLUP);
+
+  // Initial battery check for verification
+  int raw_bat = analogRead(3);
+  float vbat_init = (raw_bat * 3.3 / 4095.0) * 2.0;
+  Serial.print("Boot Battery: ");
+  Serial.print(raw_bat);
+  Serial.print(" (raw) | ");
+  Serial.print(vbat_init);
+  Serial.println("V");
 
   WiFiManager wm;
   wm.setAPCallback(configModeCallback);

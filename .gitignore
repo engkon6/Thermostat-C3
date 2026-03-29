@@ -1,2 +1,8 @@
 build/
 .arduino15/
+.pio/
+.vscode/
+*.bin
+*.elf
+*.map
+config.json
