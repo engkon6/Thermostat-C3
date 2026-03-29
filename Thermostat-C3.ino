@@ -281,14 +281,14 @@ void TH_Overlay() {
   display.clear();
   
   // Read battery status
-  int raw = analogRead(3);
-  batteryVoltage = (raw * 3.3 / 4095.0) * 2.0;
-  // Simple mapping: 3.3V = 0%, 4.2V = 100%
-  batteryPercentage = constrain(map(batteryVoltage * 100, 330, 420, 0, 100), 0, 100);
+  uint32_t mV = analogReadMilliVolts(3);
+  batteryVoltage = (mV * 2.0) / 1000.0; // 1:2 divider
+  // Mapping: 3.2V = 0%, 4.2V = 100%
+  batteryPercentage = constrain(map(mV * 2, 3200, 4200, 0, 100), 0, 100);
 
   Serial.print("Battery: ");
-  Serial.print(raw);
-  Serial.print(" (raw) | ");
+  Serial.print(mV);
+  Serial.print("mV (raw) | ");
   Serial.print(batteryVoltage);
   Serial.print("V | ");
   Serial.print(batteryPercentage);

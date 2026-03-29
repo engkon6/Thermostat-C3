@@ -62,8 +62,8 @@ Ensure you have the following libraries installed in your Arduino environment:
 
 ### Command Line (arduino-cli)
 ```bash
-arduino-cli compile --fqbn esp32:esp32:lolin_c3_pico ./Thermostat_29
-arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:lolin_c3_pico ./Thermostat_29
+arduino-cli compile --fqbn esp32:esp32:lolin_c3_pico ./Thermostat-C3
+arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:lolin_c3_pico ./Thermostat-C3
 ```
 
 ---
