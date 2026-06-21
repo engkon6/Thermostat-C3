@@ -109,7 +109,7 @@ void loadConfig() {
   File configFile = LittleFS.open("/config.json", "r");
   if (!configFile) return;
 
-  DynamicJsonDocument json(1024);
+  JsonDocument json;
   if (deserializeJson(json, configFile) == DeserializationError::Ok) {
 
     const char* v;
@@ -157,7 +157,7 @@ void loadConfig() {
 }
 
 void saveConfig() {
-  DynamicJsonDocument json(1024);
+  JsonDocument json;
   json["mqtt_server"] = mqtt_server;
   json["mqtt_port"] = mqtt_port;
   json["mqtt_user"] = mqtt_user;
@@ -772,7 +772,7 @@ void setupWebServer() {
   httpServer.on("/", []() { httpServer.send(200, "text/html", DASHBOARD_HTML); });
 
   httpServer.on("/api/status", []() {
-    DynamicJsonDocument doc(1024);
+    JsonDocument doc;
     doc["temp"] = Temp;
     doc["setpoint"] = Temp2;
     doc["relay"] = deviceStatus;
