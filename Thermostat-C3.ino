@@ -805,8 +805,13 @@ void setupWebServer() {
 
   httpServer.on("/api/set", HTTP_POST, []() {
     if (httpServer.hasArg("setpoint")) {
-      Temp2 = constrain(httpServer.arg("setpoint").toFloat(), -25.0, -15.0);
+      float val = httpServer.arg("setpoint").toFloat();
+      Serial.print("[API] Setpoint received: "); Serial.println(val);
+      Temp2 = constrain(val, -25.0, -15.0);
+      Serial.print("[API] Setpoint after constrain: "); Serial.println(Temp2);
       mqttClient.publish(topic_pub, String(Temp2).c_str(), true);
+    } else {
+      Serial.println("[API] No setpoint argument");
     }
     httpServer.send(200, "text/plain", "OK");
   });
